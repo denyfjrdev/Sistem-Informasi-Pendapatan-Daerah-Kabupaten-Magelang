@@ -19,9 +19,10 @@ class Load extends ApiBaseController
     return $this->response->setJSON($respon);    
   }
 
-  function load(){        
-    $tahun  = $this->param['tahun']; //date("Y");
-    $bulan  = $this->param['bulan']; //date("m");
+  function load(){
+    $param  = is_array($this->param) ? $this->param : [];
+    $tahun  = $param['tahun'] ?? $this->request->getGet('tahun') ?? date('Y');
+    $bulan  = $param['bulan'] ?? $this->request->getGet('bulan') ?? date('n');
     $data  = [
       "tahun"   =>  $tahun,
       "bulan"   =>  $bulan

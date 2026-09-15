@@ -27,8 +27,10 @@ class TargetController extends AdminBaseController
     public function index()
     {
         $data = [
-          'menu'  =>  'Pengaturan',
-          'fiture'  =>  'Target',
+            'data_user'   => $this->data_user,
+            'role_login'  => $this->data_user->role,
+            'menu'        => 'Monitoring Perpajakan',
+            'fiture'      => 'Input Target',
             'title'       => 'Target Pajak',
             'jenis_pajak' => $this->jenisPajakModel
                 ->orderBy('nama_pajak', 'ASC')

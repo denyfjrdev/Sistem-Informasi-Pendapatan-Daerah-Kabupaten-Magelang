@@ -31,6 +31,43 @@
 	color: var(--green-main) !important;
 }
 
+.vertical-menu #sidebar-menu ul li > a,
+.vertical-menu #sidebar-menu ul li > a:link,
+.vertical-menu #sidebar-menu ul li > a:visited,
+.vertical-menu #sidebar-menu ul li > a:focus,
+.vertical-menu #sidebar-menu ul li > a:active {
+	color: #545a6d !important;
+}
+.vertical-menu #sidebar-menu ul li > a i,
+.vertical-menu #sidebar-menu ul li > a:link i,
+.vertical-menu #sidebar-menu ul li > a:visited i,
+.vertical-menu #sidebar-menu ul li > a:focus i,
+.vertical-menu #sidebar-menu ul li > a:active i {
+	color: #7f8387 !important;
+}
+
+.vertical-menu #sidebar-menu ul li.mm-active > a,
+.vertical-menu #sidebar-menu ul li.mm-active > a:focus,
+.vertical-menu #sidebar-menu ul li.mm-active > a:visited,
+.vertical-menu #sidebar-menu ul li.mm-active > a.active,
+.vertical-menu #sidebar-menu ul li.mm-active .active {
+	color: var(--green-main) !important;
+}
+.vertical-menu #sidebar-menu ul li.mm-active > a i,
+.vertical-menu #sidebar-menu ul li.mm-active > a:focus i,
+.vertical-menu #sidebar-menu ul li.mm-active > a:visited i,
+.vertical-menu #sidebar-menu ul li.mm-active > a.active i,
+.vertical-menu #sidebar-menu ul li.mm-active .active i {
+	color: var(--green-main) !important;
+}
+
+.vertical-menu #sidebar-menu ul li > a:hover,
+.vertical-menu #sidebar-menu ul li > a:hover i,
+.vertical-menu #sidebar-menu ul li.mm-active > a:hover,
+.vertical-menu #sidebar-menu ul li.mm-active > a:hover i {
+	color: #ffffff !important;
+}
+
 /* ======================================
    SUBMENU - ACTIVE (HIJAU SOLID)
 ====================================== */
@@ -278,10 +315,6 @@
 	}
 }
 
-.vertical-menu {
-	background: #fafafa;
-}
-
 body {
 	background: rgb(255, 255, 255);
 }
@@ -320,40 +353,36 @@ select {
 	background-color: var(--green-button-main) !important;
 }
 
-/*-----------------------custom css by mansur Ch----------------*/
-/* Lebar sidebar baru */
 .vertical-menu {
-	width: 100px !important;
+	background: #fafafa;
+	width: 250px !important;
+	position: fixed !important;
+	top: 70px !important;
+	bottom: 0 !important;
+	left: 0 !important;
 }
 
-/* Logo area */
-/* .navbar-brand-box {
-          width: 150px !important;
-      } */
 .navbar-brand-box {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100px !important; /* samakan dengan lebar sidebar */
-	height: 70px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: #fff;
-	z-index: 1002;
-	border-right: 1px solid #eee;
-	border-bottom: 1px solid #eee;
+	width: 250px !important;
 }
 
-/* custom agar logo berada di pojok kiri atas */
-/* Header geser mengikuti sidebar */
-#page-topbar {
-	left: 100px !important;
-}
-
-/* Content geser mengikuti sidebar */
 .main-content {
-	margin-left: 100px !important;
+	margin-left: 250px !important;
+}
+
+body.vertical-collpsed .vertical-menu,
+body.vertical-collpsed .navbar-brand-box {
+	width: 70px !important;
+}
+
+body.vertical-collpsed .main-content {
+	margin-left: 70px !important;
+}
+
+@media (max-width: 991.98px) {
+	.main-content {
+		margin-left: 0 !important;
+	}
 }
 
 /* hover dropdown */

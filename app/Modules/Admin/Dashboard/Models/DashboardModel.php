@@ -10,7 +10,12 @@ class DashboardModel extends Model
 
   function get_target($param=[]){
     $tahun = $param['tahun'];
-    $data = $this->db->table("jenis_pajak")->select("*")->get()->getResultArray();
+    $data = $this->db->table("jenis_pajak")->select("*")
+      ->groupStart()
+        ->where('kode !=', 'esptpd')
+        ->orWhere('kode', null)
+      ->groupEnd()
+      ->get()->getResultArray();
     foreach($data as $index_anggaran=>$jenis){
         $bulan = $this->db->table("ref_anggaran")
           ->select("bulan,tahun,status_anggaran")
@@ -96,6 +101,81 @@ class DashboardModel extends Model
     $data   = $this->db->table("config")->get()->getRow();
     return $data;
   }
-  
+    function get_realisasi_yoy($param = [])
+  {
+      $tahunIni    = $param['tahun'];       // misal 2026
+      $tahunLalu   = $tahunIni - 1;         // 2025
 
+      $hasil = [];
+
+      foreach ([$tahunLalu, $tahunIni] as $tahun) {
+
+          for ($bulan = 1; $bulan <= 12; $bulan++) {
+
+              $target = $this->db->table("target t")
+                  ->selectSum("t.target")
+                  ->join("jenis_pajak jp", "jp.id = t.jenis_id")
+                  ->groupStart()
+                      ->where("jp.kode !=", "esptpd")
+                      ->orWhere("jp.kode", null)
+                  ->groupEnd()
+                  ->where("t.bulan", $bulan)
+                  ->where("t.tahun", $tahun)
+                  ->get()->getRow();
+
+              $realisasi = $this->db->table("realisasi r")
+                  ->select("SUM(r.realisasi) as realisasi")
+                  ->join("target t", "t.id = r.target_id")
+                  ->join("jenis_pajak jp", "jp.id = t.jenis_id")
+                  ->groupStart()
+                      ->where("jp.kode !=", "esptpd")
+                      ->orWhere("jp.kode", null)
+                  ->groupEnd()
+                  ->where("r.bulan", $bulan)
+                  ->where("r.tahun", $tahun)
+                  ->get()->getRow();
+
+              $totalTarget    = (float) ($target->target ?? 0);
+              $totalRealisasi = (float) ($realisasi->realisasi ?? 0);
+
+              $persen = $totalTarget > 0
+                  ? ($totalRealisasi / $totalTarget) * 100
+                  : 0;
+
+              $hasil[$bulan][$tahun] = [
+                  "target"     => $totalTarget,
+                  "realisasi"  => $totalRealisasi,
+                  "persen"     => round($persen, 1),
+              ];
+          }
+      }
+
+      return $hasil;
+      // struktur: $hasil[1]['2025']['persen'], $hasil[1]['2026']['persen'], dst
+  }
+
+  function get_top_kecamatan($param = [])
+  {
+      $tahun = $param['tahun'] ?? date('Y');
+      $limit = (int) ($param['limit'] ?? 5);
+
+      return $this->db->table('realisasi r')
+          ->select('k.kode_kecamatan, k.nama_kecamatan, SUM(r.realisasi) AS total_realisasi')
+          ->join('target t', 't.id = r.target_id')
+          ->join('jenis_pajak jp', 'jp.id = t.jenis_id')
+          ->join('desa d', 'd.kode_desa = r.kode_desa')
+          ->join('kecamatan k', 'k.kode_kecamatan = d.kode_kecamatan')
+          ->where('r.tahun', $tahun)
+          ->where('r.kode_desa IS NOT NULL', null, false)
+          ->where('r.kode_desa !=', '')
+          ->groupStart()
+              ->whereIn('jp.jenis', ['pbb', 'kendaraan'])
+              ->orWhere('jp.kode', 'esptpd')
+          ->groupEnd()
+          ->groupBy('k.kode_kecamatan, k.nama_kecamatan')
+          ->orderBy('total_realisasi', 'DESC')
+          ->limit($limit)
+          ->get()
+          ->getResultArray();
+  }
 }    

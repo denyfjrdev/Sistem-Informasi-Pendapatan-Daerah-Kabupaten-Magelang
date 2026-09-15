@@ -1,0 +1,133 @@
+2026-09-13 21:56:21 loop start
+2026-09-13 21:56:23 busy
+2026-09-13 21:56:27 busy
+2026-09-13 21:56:29 busy
+2026-09-13 21:56:33 busy
+2026-09-13 21:56:42 busy
+2026-09-13 21:57:03 mode=full remaining=271 done=6 job=bphtb 1 030 ok=True
+2026-09-13 21:57:28 mode=full remaining=270 done=7 job=bphtb 1 040 ok=True
+2026-09-13 21:57:48 mode=full remaining=269 done=8 job=bphtb 1 050 ok=True
+2026-09-13 21:58:09 mode=full remaining=268 done=9 job=bphtb 1 060 ok=True
+2026-09-13 21:58:37 mode=full remaining=267 done=10 job=bphtb 1 070 ok=True
+2026-09-13 21:59:08 mode=full remaining=266 done=11 job=bphtb 1 080 ok=True
+2026-09-13 21:59:38 mode=full remaining=265 done=12 job=bphtb 1 090 ok=True
+2026-09-13 22:00:06 mode=full remaining=264 done=13 job=bphtb 1 100 ok=True
+2026-09-13 22:00:07 busy
+2026-09-13 22:00:10 busy
+2026-09-13 22:00:12 busy
+2026-09-13 22:00:15 busy
+2026-09-13 22:00:17 busy
+2026-09-13 22:00:19 busy
+2026-09-13 22:00:22 busy
+2026-09-13 22:00:24 busy
+2026-09-13 22:00:26 busy
+2026-09-13 22:00:29 busy
+2026-09-13 22:00:31 busy
+2026-09-13 22:00:34 busy
+2026-09-13 22:00:36 busy
+2026-09-13 22:00:38 busy
+2026-09-13 22:01:13 mode=full remaining=262 done=15 job=bphtb 1 120 ok=True
+2026-09-13 22:01:44 mode=full remaining=261 done=16 job=bphtb 1 130 ok=True
+2026-09-13 22:02:05 mode=full remaining=260 done=17 job=bphtb 1 140 ok=True
+2026-09-13 22:02:37 mode=full remaining=259 done=18 job=bphtb 1 150 ok=True
+2026-09-13 22:03:00 mode=full remaining=258 done=19 job=bphtb 1 160 ok=True
+2026-09-13 22:03:29 mode=full remaining=257 done=20 job=bphtb 1 170 ok=True
+2026-09-13 22:03:56 mode=full remaining=256 done=21 job=bphtb 1 180 ok=True
+2026-09-13 22:03:57 busy
+2026-09-13 22:04:00 busy
+2026-09-13 22:04:02 busy
+2026-09-13 22:04:04 busy
+2026-09-13 22:04:06 busy
+2026-09-13 22:04:09 busy
+2026-09-13 22:04:11 busy
+2026-09-13 22:04:13 busy
+2026-09-13 22:04:16 busy
+2026-09-13 22:04:49 mode=full remaining=254 done=23 job=bphtb 1 200 ok=True
+2026-09-13 22:05:08 mode=full remaining=253 done=24 job=bphtb 1 210 ok=True
+2026-09-13 22:05:12 mode=full remaining=252 done=25 job=esptpd 2  ok=True
+2026-09-13 22:05:14 mode=full remaining=251 done=26 job=opsen 2  ok=True
+2026-09-13 22:05:39 mode=full remaining=250 done=27 job=bphtb 2 010 ok=True
+2026-09-13 22:06:07 mode=full remaining=249 done=28 job=bphtb 2 020 ok=True
+2026-09-13 22:06:36 mode=full remaining=248 done=29 job=bphtb 2 030 ok=True
+2026-09-13 22:06:37 busy
+2026-09-13 22:06:40 busy
+2026-09-13 22:06:42 busy
+2026-09-13 22:06:44 busy
+2026-09-13 22:06:47 busy
+2026-09-13 22:06:49 busy
+2026-09-13 22:06:51 busy
+2026-09-13 22:06:53 busy
+2026-09-13 22:06:56 busy
+2026-09-13 22:06:58 busy
+2026-09-13 22:07:19 mode=full remaining=246 done=31 job=bphtb 2 050 ok=True
+2026-09-13 22:07:39 mode=full remaining=245 done=32 job=bphtb 2 060 ok=True
+2026-09-13 22:08:03 mode=full remaining=244 done=33 job=bphtb 2 070 ok=True
+2026-09-13 22:08:29 mode=full remaining=243 done=34 job=bphtb 2 080 ok=True
+2026-09-13 22:08:56 mode=full remaining=242 done=35 job=bphtb 2 090 ok=True
+2026-09-13 22:08:57 busy
+2026-09-13 22:08:59 busy
+2026-09-13 22:09:02 busy
+2026-09-13 22:09:05 busy
+2026-09-13 22:09:07 busy
+2026-09-13 22:09:09 busy
+2026-09-13 22:09:12 busy
+2026-09-13 22:09:14 busy
+2026-09-13 22:09:17 busy
+2026-09-13 22:09:19 busy
+2026-09-13 22:09:22 busy
+2026-09-13 22:09:53 mode=full remaining=240 done=37 job=bphtb 2 110 ok=True
+2026-09-13 22:10:21 mode=full remaining=239 done=38 job=bphtb 2 120 ok=True
+2026-09-13 22:10:46 mode=full remaining=238 done=39 job=bphtb 2 130 ok=True
+2026-09-13 22:10:47 busy
+2026-09-13 22:10:50 busy
+2026-09-13 22:10:52 busy
+2026-09-13 22:10:55 busy
+2026-09-13 22:10:57 busy
+2026-09-13 22:11:00 busy
+2026-09-13 22:11:02 busy
+2026-09-13 22:11:04 busy
+2026-09-13 22:11:33 mode=full remaining=236 done=41 job=bphtb 2 150 ok=True
+2026-09-13 22:11:56 mode=full remaining=235 done=42 job=bphtb 2 160 ok=True
+2026-09-13 22:11:57 busy
+2026-09-13 22:12:00 busy
+2026-09-13 22:12:02 busy
+2026-09-13 22:12:04 busy
+2026-09-13 22:12:07 busy
+2026-09-13 22:12:09 busy
+2026-09-13 22:12:12 busy
+2026-09-13 22:12:14 busy
+2026-09-13 22:12:17 busy
+2026-09-13 22:12:19 busy
+2026-09-13 22:12:22 busy
+2026-09-13 22:12:24 busy
+2026-09-13 22:12:53 mode=full remaining=233 done=44 job=bphtb 2 180 ok=True
+2026-09-13 22:13:15 mode=full remaining=232 done=45 job=bphtb 2 190 ok=True
+2026-09-13 22:13:49 mode=full remaining=231 done=46 job=bphtb 2 200 ok=True
+2026-09-13 22:14:09 mode=full remaining=230 done=47 job=bphtb 2 210 ok=True
+2026-09-13 22:14:13 mode=full remaining=229 done=48 job=esptpd 3  ok=True
+2026-09-13 22:14:15 mode=full remaining=228 done=49 job=opsen 3  ok=True
+2026-09-13 22:14:40 mode=full remaining=227 done=50 job=bphtb 3 010 ok=True
+2026-09-13 22:15:09 mode=full remaining=226 done=51 job=bphtb 3 020 ok=True
+2026-09-13 22:15:29 mode=full remaining=225 done=52 job=bphtb 3 030 ok=True
+2026-09-13 22:15:55 mode=full remaining=224 done=53 job=bphtb 3 040 ok=True
+2026-09-13 22:16:16 mode=full remaining=223 done=54 job=bphtb 3 050 ok=True
+2026-09-13 22:31:38 loop start
+2026-09-13 22:32:18 mode=full remaining=221 done=56 job=bphtb 3 070 ok=True
+2026-09-13 22:32:44 mode=full remaining=220 done=57 job=bphtb 3 080 ok=True
+2026-09-13 22:33:26 mode=full remaining=219 done=58 job=bphtb 3 090 ok=True
+2026-09-13 22:33:47 mode=full remaining=218 done=59 job=bphtb 3 100 ok=True
+2026-09-13 22:34:17 mode=full remaining=217 done=60 job=bphtb 3 110 ok=True
+2026-09-13 22:34:46 mode=full remaining=216 done=61 job=bphtb 3 120 ok=True
+2026-09-13 22:35:12 mode=full remaining=215 done=62 job=bphtb 3 130 ok=True
+2026-09-13 22:35:35 mode=full remaining=214 done=63 job=bphtb 3 140 ok=True
+2026-09-13 22:36:06 mode=full remaining=213 done=64 job=bphtb 3 150 ok=True
+2026-09-13 22:36:28 mode=full remaining=212 done=65 job=bphtb 3 160 ok=True
+2026-09-13 22:36:55 mode=full remaining=211 done=66 job=bphtb 3 170 ok=True
+2026-09-13 22:37:22 mode=full remaining=210 done=67 job=bphtb 3 180 ok=True
+2026-09-13 22:37:49 mode=full remaining=209 done=68 job=bphtb 3 190 ok=True
+2026-09-13 22:38:26 mode=full remaining=208 done=69 job=bphtb 3 200 ok=True
+2026-09-13 22:38:46 mode=full remaining=207 done=70 job=bphtb 3 210 ok=True
+2026-09-13 22:38:50 mode=full remaining=206 done=71 job=esptpd 4  ok=True
+2026-09-13 22:38:52 mode=full remaining=205 done=72 job=opsen 4  ok=True
+2026-09-13 22:39:17 mode=full remaining=204 done=73 job=bphtb 4 010 ok=True
+2026-09-13 22:39:45 mode=full remaining=203 done=74 job=bphtb 4 020 ok=True

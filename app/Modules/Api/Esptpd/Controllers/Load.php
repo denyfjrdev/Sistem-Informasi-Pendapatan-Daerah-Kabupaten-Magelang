@@ -1,340 +1,580 @@
-<?php 
+<?php
 namespace App\Modules\Api\Esptpd\Controllers;
 
 use App\Modules\Api\ApiBaseController;
-// use App\Modules\Api\Esptpd\Models\TargetModel;
 
 
 class Load extends ApiBaseController
 {
 
-  public function __construct(){      
-    // $this->TargetModel  = new TargetModel();
-    $this->db           = \Config\Database::connect();
-    // $this->api          = new Api();
-    // $this->pdf          = new Pdf("P", "mm", "F4", true, 'UTF-8', false);  
+  private $bulan_field = [
+    1  => 'REALISASI JANUARI',
+    2  => 'REALISASI FEBRUARI',
+    3  => 'REALISASI MARET',
+    4  => 'REALISASI APRIL',
+    5  => 'REALISASI MEI',
+    6  => 'REALISASI JUNI',
+    7  => 'REALISASI JULI',
+    8  => 'REALISASI AGUSTUS',
+    9  => 'REALISASI SEPTEMBER',
+    10 => 'REALISASI OKTOBER',
+    11 => 'REALISASI NOVEMBER',
+    12 => 'REALISASI DESEMBER',
+  ];
+
+  private $alias_desa = [
+    'SOMOKERTO'     => 'SOMOKETRO',
+    'LASANPURO'     => 'LESANPURO',
+    'MANGUNSUKO'    => 'MANGUNSOKO',
+    'PODOSUKO'      => 'PODOSOKO',
+    'KAPUAN'        => 'KAPUHAN',
+    'SUMBERARUM'    => 'SUMURARUM',
+    'KALEGEN'       => 'KLEGEN',
+    'SELOMERAH'     => 'SELOMIRAH',
+    'SUMBERREJO'    => 'SUMBEREJO',
+    'NGARGOSUKO'    => 'NGARGOSOKO',
+    'NGAWONGSO'     => 'NGAWONGGO',
+    'BANJARREJO'    => 'BANJAREJO',
+    'PANGARENGAN'   => 'PENGARENGAN',
+    'BANJARSEDAYU'  => 'BANDARSEDAYU',
+  ];
+
+  public function __construct(){
+    $this->db = \Config\Database::connect();
   }
 
   function index(){
-    $respon = [
-      'index' => "index"
-    ];
-
-    return $this->response->setJSON($respon);    
+    return $this->response->setJSON([
+      'index' => 'index ESPTPD',
+    ]);
   }
 
   function load_esptpd(){
-    $tahun  = date("Y");
-    $total_loop   = 1;
-    $loop         = true;
-    $message[]    = "load_esptpd";
-    $data         = [];
-    while($loop==true and $total_loop<3){ #---maksimal loop 3 kali
-      $token  = $this->db->table("config")->get()->getRow()->token_esptpd;      
-      $param  = [
-        "tahun"   =>  $tahun,
-        "token"   =>  $token
-      ];
-      $load_api   = json_decode($this->api($param),true);
-      // var_dump($load_api['status']);exit();
+    return $this->load();
+  }
 
-      #--jika gagal, refresh token
-      if(isset($load_api['status'])){
-        if($load_api['status'] == false){
-          $request_token  = json_decode($this->refresh_token());          
-          
-          if(!isset($request_token->status)){
-            DD("Error....");        
-          }else{
-            $token_baru   = $request_token->access_token;
-          }
-          $this->db->table("config")->update(["token_esptpd"=>$token_baru]);
-        }else{
-          $loop   = true;
+  function load(){
+    set_time_limit(180);
+
+    $param  = is_array($this->param) ? $this->param : [];
+    $tahun  = (int) ($param['tahun'] ?? $this->request->getGet('tahun') ?? 2026);
+    $bulan  = (int) ($param['bulan'] ?? $this->request->getGet('bulan') ?? 1);
+
+    if ($bulan < 1 || $bulan > 12) {
+      return $this->response->setJSON([
+        'status'  => false,
+        'message' => 'bulan tidak valid',
+      ]);
+    }
+
+    $field_bulan = $this->bulan_field[$bulan];
+    $load_api    = $this->ambil_api($tahun, 'realisasi/realisasi_perkelurahan_bulanan');
+    $rows        = $load_api['data'] ?? [];
+
+    if (!is_array($rows) || count($rows) === 0) {
+      return $this->response->setJSON([
+        'status'  => false,
+        'message' => 'data API kosong / gagal',
+        'raw'     => $load_api,
+      ]);
+    }
+
+    $jenis_id = $this->get_jenis_esptpd();
+    $target   = $this->get_target([
+      'tahun'    => $tahun,
+      'bulan'    => $bulan,
+      'jenis_id' => $jenis_id,
+    ]);
+
+    $map_desa = $this->map_desa_esptpd();
+    $skip_nama = ['LUARKABUPATEN'];
+
+    $terisi        = 0;
+    $total_mapped  = 0;
+    $dilewati      = [];
+    $tidak_ketemu  = [];
+    $lebih         = [];
+    $desa_terpakai = [];
+
+    foreach ($rows as $val) {
+      $nama_kec  = $val['KECAMATAN'] ?? ($val['kecamatan'] ?? '');
+      $nama_kel  = $val['KELURAHAN'] ?? ($val['kelurahan'] ?? '');
+      $kd_kec    = str_pad((string) ($val['KODE KECAMATAN'] ?? ''), 2, '0', STR_PAD_LEFT);
+      $kd_kel    = str_pad((string) ($val['KODE KELURAHAN'] ?? ''), 2, '0', STR_PAD_LEFT);
+      $norm_kel  = $this->norm_nama($nama_kel);
+      $realisasi = (int) ($val[$field_bulan] ?? 0);
+
+      $info = [
+        'kd_kecamatan' => $kd_kec,
+        'kd_kelurahan' => $kd_kel,
+        'kecamatan'    => $nama_kec,
+        'kelurahan'    => $nama_kel,
+        'realisasi'    => $realisasi,
+      ];
+
+      if (in_array($norm_kel, $skip_nama, true) || in_array($this->norm_nama($nama_kec), $skip_nama, true)) {
+        $dilewati[] = $info;
+        $lebih[]    = $info;
+        continue;
+      }
+
+      $kode_desa = $this->cari_kode_desa($map_desa, $nama_kec, $nama_kel);
+      if (is_null($kode_desa)) {
+        $tidak_ketemu[] = $info;
+        $lebih[]        = $info;
+        continue;
+      }
+
+      $this->input_realisasi([
+        'tahun'     => $tahun,
+        'bulan'     => $bulan,
+        'target_id' => $target,
+        'kode_desa' => $kode_desa,
+        'realisasi' => $realisasi,
+      ]);
+
+      $desa_terpakai[$kode_desa] = true;
+      $total_mapped += $realisasi;
+      $terisi++;
+    }
+
+    $desa_db = $this->db->table('desa')->select('kode_desa, nama_desa, kode_kecamatan')->get()->getResult();
+    $db_tanpa_api = [];
+    foreach ($desa_db as $d) {
+      if (isset($desa_terpakai[$d->kode_desa])) {
+        continue;
+      }
+      $db_tanpa_api[] = [
+        'kode_desa'      => $d->kode_desa,
+        'nama_desa'      => $d->nama_desa,
+        'kode_kecamatan' => $d->kode_kecamatan,
+      ];
+      $this->input_realisasi([
+        'tahun'     => $tahun,
+        'bulan'     => $bulan,
+        'target_id' => $target,
+        'kode_desa' => $d->kode_desa,
+        'realisasi' => 0,
+      ]);
+    }
+
+    $this->db->table('config')->update(['last_update_esptpd' => date('Y-m-d H:i:s')]);
+
+    return $this->response->setJSON([
+      'status'       => true,
+      'message'      => 'selesai',
+      'tahun'        => $tahun,
+      'bulan'        => $bulan,
+      'jml_api'      => count($rows),
+      'jml_terisi'   => $terisi,
+      'jml_db'       => count($desa_db),
+      'total_mapped' => $total_mapped,
+      'jml_lebih'    => count($lebih),
+      'lebih'        => $lebih,
+      'dilewati'     => $dilewati,
+      'tidak_ketemu' => $tidak_ketemu,
+      'db_tanpa_api' => $db_tanpa_api,
+    ]);
+  }
+
+  function load_lra(){
+    set_time_limit(180);
+
+    $param = is_array($this->param) ? $this->param : [];
+    $tahun = (int) ($param['tahun'] ?? $this->request->getGet('tahun') ?? 2026);
+    $bulan_filter = $param['bulan'] ?? $this->request->getGet('bulan');
+    $bulan_filter = ($bulan_filter === null || $bulan_filter === '') ? null : (int) $bulan_filter;
+
+    $load_api = $this->ambil_api($tahun, 'realisasi/lra_bulanan_pajak_jenis');
+    $rows     = $load_api['data'] ?? [];
+
+    if (!is_array($rows) || count($rows) === 0) {
+      return $this->response->setJSON([
+        'status'  => false,
+        'message' => 'data API LRA kosong / gagal',
+        'raw'     => $load_api,
+      ]);
+    }
+
+    $skip_nama = ['pbb', 'bphtb', 'opsen'];
+    $terisi    = [];
+    $dilewati  = [];
+
+    foreach ($rows as $val) {
+      $kode       = (string) ($val['KODE REKENING'] ?? '');
+      $nama_pajak = (string) ($val['JENIS PAJAK'] ?? '');
+      $norm       = strtolower($nama_pajak);
+
+      $skip = false;
+      foreach ($skip_nama as $s) {
+        if (strpos($norm, $s) !== false) {
+          $skip = true;
+          break;
         }
-      }else{
-        $message[]  = "$total_loop : error...";
+      }
+      if ($skip) {
+        $dilewati[] = ['kode' => $kode, 'nama_pajak' => $nama_pajak];
+        continue;
+      }
+
+      $jenis = $this->get_jenis_by_kode($kode, $nama_pajak);
+      $bulan_isi = [];
+
+      for ($i = 1; $i <= 12; $i++) {
+        if ($bulan_filter !== null && $i !== $bulan_filter) {
+          continue;
+        }
+        $field_realisasi = $this->bulan_field[$i];
+        $field_anggaran  = str_replace('REALISASI', 'ANGGARAN', $field_realisasi);
+        $realisasi       = (int) ($val[$field_realisasi] ?? 0);
+        $target_nilai    = (int) ($val[$field_anggaran] ?? 0);
+
+        $target = $this->get_target([
+          'tahun'    => $tahun,
+          'bulan'    => $i,
+          'jenis_id' => $jenis['id'],
+        ]);
+
+        $this->input_realisasi_kabupaten([
+          'tahun'     => $tahun,
+          'bulan'     => $i,
+          'target_id' => $target,
+          'realisasi' => $realisasi,
+        ]);
+
+        if ($target_nilai > 0) {
+          $this->db->table('target')->where('id', $target['id'])->update([
+            'target'    => $target_nilai,
+            'update_at' => date('Y-m-d H:i:s'),
+          ]);
+        }
+
+        $bulan_isi[] = $i;
+      }
+
+      $terisi[] = [
+        'kode'       => $kode,
+        'nama_pajak' => $nama_pajak,
+        'jenis_id'   => $jenis['id'],
+        'bulan'      => $bulan_isi,
+      ];
+    }
+
+    $this->db->table('config')->update(['last_update_esptpd' => date('Y-m-d H:i:s')]);
+
+    return $this->response->setJSON([
+      'status'    => true,
+      'message'   => 'selesai',
+      'tahun'     => $tahun,
+      'bulan'     => $bulan_filter,
+      'jml_api'   => count($rows),
+      'jml_pajak' => count($terisi),
+      'pajak'     => $terisi,
+      'dilewati'  => $dilewati,
+    ]);
+  }
+
+  private function get_jenis_by_kode($kode, $nama_pajak){
+    $row = $this->db->table('jenis_pajak')->where('kode', $kode)->get()->getRow();
+    if (!is_null($row)) {
+      return ['id' => (int) $row->id];
+    }
+
+    $row = $this->db->table('jenis_pajak')
+      ->like('nama_pajak', $nama_pajak)
+      ->where('jenis', 'nonpbb')
+      ->get()->getRow();
+    if (!is_null($row)) {
+      if (empty($row->kode) && $kode !== '') {
+        $this->db->table('jenis_pajak')->where('id', $row->id)->update(['kode' => $kode]);
+      }
+      return ['id' => (int) $row->id];
+    }
+
+    $this->db->table('jenis_pajak')->insert([
+      'kode'       => $kode,
+      'nama_pajak' => $nama_pajak,
+      'jenis'      => 'nonpbb',
+      'create_at'  => date('Y-m-d H:i:s'),
+    ]);
+    return ['id' => (int) $this->db->insertID()];
+  }
+
+  private function input_realisasi_kabupaten($param){
+    $target_id = $param['target_id'];
+    if ($target_id == false) {
+      return;
+    }
+    $target_id = $target_id['id'];
+    $tahun     = $param['tahun'];
+    $bulan     = $param['bulan'];
+    $realisasi = $param['realisasi'];
+
+    $cek = $this->db->table('realisasi')
+      ->where('target_id', $target_id)
+      ->where('bulan', $bulan)
+      ->where('tahun', $tahun)
+      ->groupStart()
+        ->where('kode_desa', null)
+        ->orWhere('kode_desa', '')
+      ->groupEnd()
+      ->get()->getRow();
+
+    if (is_null($cek)) {
+      $this->db->table('realisasi')->insert([
+        'tahun'     => $tahun,
+        'bulan'     => $bulan,
+        'target_id' => $target_id,
+        'realisasi' => $realisasi,
+        'create_at' => date('Y-m-d H:i:s'),
+      ]);
+    } else {
+      $this->db->table('realisasi')->where('id', $cek->id)->update([
+        'realisasi' => $realisasi,
+        'update_at' => date('Y-m-d H:i:s'),
+      ]);
+    }
+  }
+
+  private function get_jenis_esptpd(){
+    $row = $this->db->table('jenis_pajak')->where('kode', 'esptpd')->get()->getRow();
+    if (!is_null($row)) {
+      return (int) $row->id;
+    }
+
+    $this->db->table('jenis_pajak')->insert([
+      'kode'       => 'esptpd',
+      'nama_pajak' => 'e-SPTPD',
+      'jenis'      => 'nonpbb',
+      'create_at'  => date('Y-m-d H:i:s'),
+    ]);
+    return (int) $this->db->insertID();
+  }
+
+  private function ambil_api($tahun, $path = 'realisasi/realisasi_perkelurahan_bulanan'){
+    $total_loop = 1;
+    $load_api   = [];
+
+    while ($total_loop < 3) {
+      $token = $this->db->table('config')->get()->getRow()->token_esptpd;
+      $raw   = $this->api([
+        'tahun' => $tahun,
+        'token' => $token,
+        'path'  => $path,
+      ]);
+      $load_api = json_decode($raw, true);
+
+      if (isset($load_api['status']) && $load_api['status'] === false) {
+        $request_token = json_decode($this->refresh_token());
+        if (!isset($request_token->status) || $request_token->status != true) {
+          return $load_api;
+        }
+        $this->db->table('config')->update([
+          'token_esptpd' => $request_token->access_token,
+        ]);
+      } elseif (isset($load_api['data'])) {
+        break;
       }
 
       $total_loop++;
     }
-    
 
-    if(isset($load_api['data'])){
-      foreach($load_api['data'] as $val){
-        //      "KODE REKENING": "41011201",
-        // "JENIS PAJAK": "Pajak Air Tanah",
-        $array_esptpd[1] = [          
-          "target"    => $val["ANGGARAN JANUARI"],
-          "realisasi" => $val["REALISASI JANUARI"]
-        ];
-        $array_esptpd[2] = [          
-          "target"    => $val["ANGGARAN FEBRUARI"],
-          "realisasi" => $val["REALISASI FEBRUARI"]
-        ];
-        $array_esptpd[3] = [          
-          "target"    => $val["ANGGARAN MARET"],
-          "realisasi" => $val["REALISASI MARET"]
-        ];
-        $array_esptpd[4] = [          
-          "target"    => $val["ANGGARAN APRIL"],
-          "realisasi" => $val["REALISASI APRIL"]
-        ];
-        $array_esptpd[5] = [          
-          "target"    => $val["ANGGARAN MEI"],
-          "realisasi" => $val["REALISASI MEI"]
-        ];
-        $array_esptpd[6] = [          
-          "target"    => $val["ANGGARAN JUNI"],
-          "realisasi" => $val["REALISASI JUNI"]
-        ];
-        $array_esptpd[7] = [          
-          "target"    => $val["ANGGARAN JULI"],
-          "realisasi" => $val["REALISASI JULI"]
-        ];
-        $array_esptpd[8] = [
-          "target"    => $val["ANGGARAN AGUSTUS"],
-          "realisasi" => $val["REALISASI AGUSTUS"]
-        ];
-        $array_esptpd[9] = [
-          "target"    => $val["ANGGARAN SEPTEMBER"],
-          "realisasi" => $val["REALISASI SEPTEMBER"]
-        ];
-        $array_esptpd[10] = [
-          "target"    => $val["ANGGARAN OKTOBER"],
-          "realisasi" => $val["REALISASI OKTOBER"]
-        ];
-        $array_esptpd[11] = [
-          "target"    => $val["ANGGARAN NOVEMBER"],
-          "realisasi" => $val["REALISASI NOVEMBER"]
-        ];
-        $array_esptpd[12] = [
-          "target"    => $val["ANGGARAN DESEMBER"],
-          "realisasi" => $val["REALISASI DESEMBER"]
-        ];
-                  
-
-        $kode         = $val['KODE REKENING'];
-        $nama_pajak   = $val['JENIS PAJAK'];
-
-        $cek_tabel_jenis  = $this->db->table("jenis_pajak")->where("kode",$kode)->get()->getRow();
-        if(is_null($cek_tabel_jenis)){
-          $field  = [
-            "kode"      =>  $kode,
-            "nama_pajak"=> $nama_pajak,
-            "jenis"     =>  "nonpbb"
-          ];
-          $this->db->table("jenis_pajak")->insert($field);
-        }
-
-        // $convert_bulan      = $this->convert_bulan($val['ANGGARAN JANUARI']);
-        // $nama_bulan   = $convert_bulan['nama'];
-        // var_dump($convert_bulan);exit();
-
-        for ($i = 1; $i <= 12; $i++) {
-          // var_dump($array_esptpd[$i]);exit();
-          // var_dump($array_esptpd[$i]["target"]);exit();
-          $bulan        = $i;
-          $realisasi    = $array_esptpd[$i]["realisasi"];
-          $target       = $array_esptpd[$i]["target"];
-          $target_id    = $this->get_target(["jenis_id"=>$cek_tabel_jenis->id,"tahun"=>$tahun,"bulan"=>$bulan,"target"=>$target]);
-          // DD($target_id);
-          if($target_id != false){
-            $target_id  = $target_id['id'];
-            $field_realisasi  = [
-              "tahun"     =>  $tahun,
-              "bulan"     =>  $bulan,
-              "target_id" =>  $target_id,
-              "realisasi" =>  $realisasi
-            ];
-            $cek_data_realisasi   = $this->db->table("realisasi")
-              ->where("target_id",$target_id)
-              ->where("bulan",$bulan)
-              ->where("tahun",$tahun)
-              ->get()->getRow();
-            if(is_null($cek_data_realisasi)){
-              $this->db->table("realisasi")->insert($field_realisasi);
-            }else{
-              $this->db->table("realisasi")->where("id",$cek_data_realisasi->id)->update(["realisasi"=>$realisasi]);
-            }
-          }          
-        }
-                      
-      }
-    }else{
-      $message[]  = "Error....elemen data tidak ada";
-    }
-
-    if(isset($load_api['data'])){
-      $data   = $load_api['data'];
-    }
-
-    $respon = [
-      'status'  => true,
-      "message" =>  $message,
-      "data"    =>  $data
-    ];
-
-    #---update last update last_update_esptpd
-    $this->db->table("config")->update(["last_update_esptpd" => date("Y-m-d H:i:s")]);
-
-    return $this->response->setJSON($respon);
+    return is_array($load_api) ? $load_api : [];
   }
 
-  // get_target(["jenis_id"=>$cek_tabel_jenis->id,"tahun"=>$tahun,"bulan"=>$bulan]);
-  private function get_target($param=[]){    
-    // var_dump($param);exit();
-    $data   = $this->db->table("target")
-      ->where("tahun",$param['tahun'])
-      ->where("bulan",$param['bulan'])
-      ->where("jenis_id",$param['jenis_id'])
-      ->get()->getRow();
-    if(is_null($data)){ 
-      #---input target
-      $status_anggaran  = $this->db->table("ref_anggaran")
-        ->where("tahun",$param['tahun'])
-        ->where("bulan",$param['bulan'])
-        ->get()->getRow()->status_anggaran;
-      $input  = [
-        "tahun"   =>  $param['tahun'],
-        "bulan"   =>  $param['bulan'],
-        "target"  =>  $param['target'],
-        "status_anggaran" =>  $status_anggaran,
-        "jenis_id"  =>  $param['jenis_id'],
-      ];     
-      $this->db->table("target")->insert($input);      
-      return ["id"=>$this->db->insertID()];
-    }else{
-      return (["id"=>$data->id]);
+  private function map_desa_esptpd(){
+    $map = [];
+    $desa = $this->db->table('desa d')
+      ->select('d.kode_desa, d.nama_desa, k.nama_kecamatan')
+      ->join('kecamatan k', 'k.kode_kecamatan = d.kode_kecamatan')
+      ->get()->getResult();
+
+    foreach ($desa as $row) {
+      $kec = $this->norm_nama($row->nama_kecamatan);
+      $kel = $this->norm_nama($row->nama_desa);
+      if ($kec === '' || $kel === '') {
+        continue;
+      }
+      if (!isset($map[$kec][$kel])) {
+        $map[$kec][$kel] = $row->kode_desa;
+      }
     }
-    
+
+    return $map;
+  }
+
+  private function cari_kode_desa($map, $nama_kec, $nama_kel){
+    $kec = $this->norm_nama($nama_kec);
+    $cands = $this->kandidat_nama($nama_kel);
+
+    foreach ($cands as $kel) {
+      if (isset($map[$kec][$kel])) {
+        return $map[$kec][$kel];
+      }
+    }
+
+    return null;
+  }
+
+  private function kandidat_nama($nama){
+    $n = $this->norm_nama($nama);
+    $out = [$n];
+    if (isset($this->alias_desa[$n])) {
+      $out[] = $this->norm_nama($this->alias_desa[$n]);
+    }
+    return array_unique($out);
+  }
+
+  private function norm_nama($s){
+    $s = strtoupper(trim((string) $s));
+    $s = preg_replace('/^KELURAHAN\s+/', '', $s);
+    $s = preg_replace('/^DESA\s+/', '', $s);
+    $s = preg_replace('/\([^)]*\)/', '', $s);
+    $s = str_replace(['/', '-', '.', ',', "'"], ' ', $s);
+    $s = preg_replace('/\s+/', '', $s);
+    return $s;
+  }
+
+  private function hapus_realisasi_kabupaten($target_map, $tahun, $bulan){
+    foreach ($target_map as $target) {
+      if ($target == false) {
+        continue;
+      }
+      $target_id = $target['id'];
+      $this->db->table('realisasi')
+        ->where('target_id', $target_id)
+        ->where('tahun', $tahun)
+        ->where('bulan', $bulan)
+        ->groupStart()
+          ->where('kode_desa', null)
+          ->orWhere('kode_desa', '')
+        ->groupEnd()
+        ->delete();
+    }
+  }
+
+  private function input_realisasi($param){
+    $target_id = $param['target_id'];
+    $bulan     = $param['bulan'];
+    $tahun     = $param['tahun'];
+    $realisasi = $param['realisasi'];
+    $kode_desa = $param['kode_desa'];
+
+    if ($target_id == false) {
+      return;
+    }
+
+    $target_id = $target_id['id'];
+    $field = [
+      'tahun'     => $tahun,
+      'bulan'     => $bulan,
+      'target_id' => $target_id,
+      'realisasi' => $realisasi,
+      'kode_desa' => $kode_desa,
+      'create_at' => date('Y-m-d H:i:s'),
+    ];
+
+    $cek = $this->db->table('realisasi')
+      ->where('target_id', $target_id)
+      ->where('bulan', $bulan)
+      ->where('tahun', $tahun)
+      ->where('kode_desa', $kode_desa)
+      ->get()->getRow();
+
+    if (is_null($cek)) {
+      $this->db->table('realisasi')->insert($field);
+    } else {
+      $this->db->table('realisasi')->where('id', $cek->id)->update([
+        'realisasi' => $realisasi,
+        'update_at' => date('Y-m-d H:i:s'),
+      ]);
+    }
+  }
+
+  private function get_target($param=[]){
+    $data = $this->db->table('target')
+      ->where('tahun', $param['tahun'])
+      ->where('bulan', $param['bulan'])
+      ->where('jenis_id', $param['jenis_id'])
+      ->get()->getRow();
+
+    if (is_null($data)) {
+      $this->db->table('target')->insert([
+        'tahun'     => $param['tahun'],
+        'bulan'     => $param['bulan'],
+        'target'    => 0,
+        'jenis_id'  => $param['jenis_id'],
+        'create_at' => date('Y-m-d H:i:s'),
+      ]);
+      return ['id' => $this->db->insertID()];
+    }
+
+    return ['id' => $data->id];
   }
 
   private function api($param=[]){
-    $tahun  = $param['tahun'];
-    $token  = $param['token'];
+    $tahun = $param['tahun'];
+    $token = $param['token'];
+    $path  = $param['path'] ?? 'realisasi/realisasi_perkelurahan_bulanan';
 
     $curl = curl_init();
-
     curl_setopt_array($curl, [
-      CURLOPT_URL => "https://esptpd.magelangkab.go.id/wspdl-kab-magelang/api/realisasi/lra_bulanan_pajak_jenis?tahun=".$tahun,
+      CURLOPT_URL => 'https://esptpd.magelangkab.go.id/wspdl-kab-magelang/api/' . $path . '?tahun=' . $tahun,
       CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_ENCODING => "",
+      CURLOPT_ENCODING => '',
       CURLOPT_MAXREDIRS => 10,
-      CURLOPT_TIMEOUT => 30,
+      CURLOPT_TIMEOUT => 120,
       CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-      CURLOPT_CUSTOMREQUEST => "GET",
-      CURLOPT_POSTFIELDS => "",
+      CURLOPT_CUSTOMREQUEST => 'GET',
       CURLOPT_HTTPHEADER => [
-        "Authorization: Bearer ".$token,
-        "Content-Type: application/json"
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json',
       ],
+      CURLOPT_SSL_VERIFYPEER => false,
+      CURLOPT_SSL_VERIFYHOST => false,
     ]);
 
     $response = curl_exec($curl);
     $err = curl_error($curl);
-
     curl_close($curl);
 
     if ($err) {
-      return "cURL Error #:" . $err;
-    } else {
-      return $response;
-    }    
+      return json_encode(['status' => false, 'message' => $err]);
+    }
+
+    return $response;
   }
 
   private function refresh_token(){
     $curl = curl_init();
-
     curl_setopt_array($curl, [
-      CURLOPT_URL => "https://esptpd.magelangkab.go.id/wspdl-kab-magelang/api/auth/login",
+      CURLOPT_URL => 'https://esptpd.magelangkab.go.id/wspdl-kab-magelang/api/auth/login',
       CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_ENCODING => "",
+      CURLOPT_ENCODING => '',
       CURLOPT_MAXREDIRS => 10,
       CURLOPT_TIMEOUT => 30,
       CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-      CURLOPT_CUSTOMREQUEST => "POST",
+      CURLOPT_CUSTOMREQUEST => 'POST',
       CURLOPT_POSTFIELDS => json_encode([
         'username' => 'api-dashboard',
-        'password' => 'g,$fs6nLW5tRVUmI'
+        'password' => 'g,$fs6nLW5tRVUmI',
       ]),
       CURLOPT_HTTPHEADER => [
-        "Authorization: Bearer ",
-        "Content-Type: application/json"
+        'Content-Type: application/json',
       ],
+      CURLOPT_SSL_VERIFYPEER => false,
+      CURLOPT_SSL_VERIFYHOST => false,
     ]);
 
     $response = curl_exec($curl);
     $err = curl_error($curl);
-
     curl_close($curl);
 
     if ($err) {
-      return "cURL Error #:" . $err;
-    } else {
-      return $response;
-    }      
-  }
+      return json_encode(['status' => false, 'message' => $err]);
+    }
 
-
-  private function convert_bulan($nama_bulan=""){
-    $kode   = 0;
-    $nama   = '';
-    switch ($nama_bulan) {    
-        case 'ANGGARAN JANUARI':
-          $kode   = 1;
-          // $nama   = 'JANUARI';
-          break;        
-        case 'ANGGARAN FEBRUARI':
-          $kode   = 2;
-          // $nama   = 'FEBRUARI';
-          break;
-        case 'ANGGARAN MARET':
-          $kode   = 3;
-          // $nama   = 'MARET';
-          break;
-        case 'ANGGARAN APRIL':
-          $kode   = 4;
-          // $nama   = 'APRIL';
-          break;
-        case 'ANGGARAN MEI':
-          $kode   = 5;
-          // $nama   = 'MEI';
-          break;
-        case 'ANGGARAN JUNI':
-          $kode   = 6;
-          // $nama   = 'JUNI';
-          break;
-        case 'ANGGARAN JULI':
-          $kode   = 7;
-          // $nama   = 'JULI';
-          break;
-        case 'ANGGARAN AGUSTUS':
-          $kode   = 8;
-          // $nama   = 'AGUSTUS';
-          break;
-        case 'ANGGARAN SEPTEMBER':
-          $kode   = 9;
-          // $nama   = 'SEPTEMBER';
-          break;
-        case 'ANGGARAN OKTOBER':
-          $kode   = 10;
-          // $nama   = 'OKTOBER';
-          break;
-        case 'ANGGARAN NOVEMBER':
-          $kode   = 11;
-          // $nama   = 'NOVEMBER';
-          break;
-        case 'ANGGARAN DESEMBER':
-          $kode   = 12;
-          // $nama   = 'DESEMBER';
-          break;
-        default:
-          $kode   = 0;
-          break;
-    }          
-    
-    return $kode;
+    return $response;
   }
 
 }

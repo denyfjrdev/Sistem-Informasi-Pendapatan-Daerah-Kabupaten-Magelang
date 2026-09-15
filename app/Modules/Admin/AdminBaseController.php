@@ -39,6 +39,7 @@ class AdminBaseController extends Controller
     $this->enkrip             = new Enkripsi(); 
     $this->user_id_enkrip     = $this->enkrip->enkripsi_ci($this->data_user->user_id,env('TOKEN_ENKRIP_CI'));           
     $this->user_id_dekrip     = $this->enkrip->dekripsi_ci($this->data_user->user_id,env('TOKEN_ENKRIP_CI'));    
+    set_parent_url_session();
 
 	}
 

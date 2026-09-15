@@ -127,8 +127,9 @@
         // var_dump($decode);exit();        
         $array_roles = json_decode($decode->roles);        
         $rolesValid = [
-          "bue_admin",
-          "bue_master",          
+          "sijaka_admin",
+          "sijaka_master",
+          "sijaka_pimpinan",
         ];
 
         if (empty(array_intersect($array_roles, $rolesValid))) {
@@ -142,6 +143,8 @@
           $role = "sijaka_admin";  
         }elseif(in_array("sijaka_master", $array_roles)){
           $role = "sijaka_master"; 
+        }elseif(in_array("sijaka_pimpinan", $array_roles)){
+          $role = "sijaka_pimpinan";
         }else{
           $role = "user";
         }
@@ -172,6 +175,9 @@
 
         $data_user =  $db->table("users")->where("uuid",$decode->uuid)->get()->getRowArray();
         $data_user['user_id'] = $enkrip->enkripsi_ci($data_user['id'],env('TOKEN_ENKRIP_CI'));
+        $data_user['nama_user_dekrip']  = $enkrip->decode_custom($data_user['nama_user'],env('TOKEN_ENKRIP_CI'));
+        $data_user['email_dekrip']      = $enkrip->decode_custom($data_user['email'] ?? '',env('TOKEN_ENKRIP_CI'));
+        $data_user['email_gov_dekrip']  = $enkrip->decode_custom($data_user['email_gov'] ?? '',env('TOKEN_ENKRIP_CI'));
         $session->set("data_user", $data_user);
         $session->set("logged_in",TRUE);
         

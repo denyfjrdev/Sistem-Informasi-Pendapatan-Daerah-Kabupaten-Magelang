@@ -1,64 +1,12 @@
-<div id="navbar-menu" class="d-flex align-items-center gap-3 ms-3">
-
-    <a href="<?= base_url('admin') ?>" class="text-dark text-decoration-none">
-        <i class="bx bx-home-circle fs-4"></i>
-        <span>Dashboard Pimpinan</span>
-    </a>
-
-    
-  
-
-  <div class="dropdown d-inline-block hover-dropdown">
-      <a href="#" class="text-dark text-decoration-none d-flex align-items-center gap-1">
-        <i class="bx bx-detail fs-4"></i>
-          <span>Detail</span>
-          <!-- panah bawah -->
-        <i class="bx bx-chevron-down"></i>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li>
-          <a class="dropdown-item" href="<?= base_url('admin/detil/ketetapan') ?>">
-            Ketetapan
-          </a>
-        </li>
-        <li>
-          <a class="dropdown-item" href="<?= base_url('admin/detil/target') ?>">
-            Target
-          </a>
-        </li>
-        <li class="dropdown-submenu dropend">
-          <a class="dropdown-item dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            Realisasi
-          </a>
-          <ul class="dropdown-menu">
-            <li>
-              <a class="dropdown-item" href="<?= base_url('admin/detil/realisasi/kecamatan') ?>">
-                Per Kecamatan
-              </a>
-            </li>
-            <li>
-              <a class="dropdown-item" href="<?= base_url('admin/detil/realisasi/desa') ?>">
-                Per Desa
-              </a>
-            </li>
-          </ul>
-        </li>
-        <li>
-          <a class="dropdown-item" href="<?= base_url('admin/detil/grafik') ?>">
-            Grafik
-          </a>
-        </li>
-      </ul>
-  </div>
-
-  <a href="<?= base_url('admin/informasi') ?>" class="text-dark text-decoration-none">
-      <i class="bx bx-info-circle fs-4"></i>
-      <span>Informasi</span>
-  </a>
-
-    <!-- <a href="<?= base_url('pengaturan') ?>" class="text-dark text-decoration-none">
-        <i class="bx bx-cog fs-4"></i>
-        <span>Pengaturan</span>
-    </a> -->
-
-</div>
+<a href="<?= base_url('pimpinan') ?>" class="top-nav-btn">
+    Beranda
+</a>
+<a href="<?= base_url('pimpinan/target') ?>" class="top-nav-btn">
+    Target
+</a>
+<a href="<?= base_url('pimpinan/detil') ?>" class="top-nav-btn">
+    Detail
+</a>
+<a href="<?= base_url('pimpinan/informasi') ?>" class="top-nav-btn">
+    Informasi
+</a>

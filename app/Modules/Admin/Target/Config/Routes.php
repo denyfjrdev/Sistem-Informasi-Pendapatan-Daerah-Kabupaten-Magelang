@@ -1,12 +1,5 @@
 <?php
   
-  $routes->group('admin', ['namespace' => 'App\Modules\Admin\Target\Controllers'], function($routes){
-    $routes->get('/', 'TargetController::index', [
-            'as' => 'admin.default'
-        ]);
-  });
-
-  
   $routes->group('admin/target', [
       'namespace' => 'App\Modules\Admin\Target\Controllers'
   ], function ($routes) {

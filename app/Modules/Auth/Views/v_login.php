@@ -4,9 +4,12 @@
 <head>
 
     <meta charset="utf-8" />
-    <title>Login | Skote</title>
+    <title>Login | <?= esc(env('NAMA_APLIKASI') ?? 'SIJAKA') ?></title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="<?= base_url('skote/assets/images/mgl2.png') ?>?v=2">
+    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>?v=2">
+    <link rel="apple-touch-icon" href="<?= base_url('skote/assets/images/mgl2.png') ?>?v=2">
     <link href="<?= base_url('skote/assets/css/bootstrap.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('skote/assets/css/icons.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('skote/assets/css/app.min.css') ?>" rel="stylesheet">

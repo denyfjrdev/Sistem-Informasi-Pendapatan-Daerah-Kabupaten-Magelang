@@ -36,9 +36,38 @@ class DetilModel extends Model
         return $this->db
             ->table('jenis_pajak')
             ->whereIn('jenis', ['pbb', 'nonpbb', 'kendaraan'])
+            ->groupStart()
+                ->where('kode !=', 'esptpd')
+                ->orWhere('kode', null)
+            ->groupEnd()
             ->orderBy('nama_pajak', 'ASC')
             ->get()
             ->getResultArray();
+    }
+
+    public function jenisPakaiKelurahan(?int $jenisId): bool
+    {
+        if (empty($jenisId)) {
+            return true;
+        }
+        $row = $this->db->table('jenis_pajak')->where('id', $jenisId)->get()->getRow();
+        if (!$row) {
+            return false;
+        }
+        return in_array($row->jenis, ['pbb', 'kendaraan'], true);
+    }
+
+    private function excludeEsptpd($builder)
+    {
+        $builder->groupStart()
+            ->where('jp.kode !=', 'esptpd')
+            ->orWhere('jp.kode', null)
+        ->groupEnd();
+    }
+
+    private function pakaiLraKabupaten(?int $jenisId, ?string $kodeKecamatan, ?string $kodeDesa): bool
+    {
+        return empty($jenisId) && empty($kodeKecamatan) && empty($kodeDesa);
     }
 
     /**
@@ -151,6 +180,10 @@ class DetilModel extends Model
 
         $builder->where('r.tahun', $tahun);
 
+        if ($this->pakaiLraKabupaten($jenisId, $kodeKecamatan, $kodeDesa)) {
+            $this->excludeEsptpd($builder);
+        }
+
         if (!empty($kodeKecamatan)) {
             $builder->where(
                 'd.kode_kecamatan',
@@ -186,6 +219,119 @@ class DetilModel extends Model
         return $builder->get()->getResultArray();
     }
 
+    /**
+     * Rekap realisasi per kecamatan x jenis pajak (pivot)
+     */
+    public function getRealisasiPerKecamatan(
+        int $tahun,
+        ?string $kodeKecamatan = null,
+        ?string $kodeDesa = null,
+        ?int $jenisId = null
+    ) {
+        if (!$this->jenisPakaiKelurahan($jenisId)) {
+            return [];
+        }
+
+        $builder = $this->db
+            ->table('realisasi r');
+
+        $builder->select("
+            k.kode_kecamatan,
+            k.nama_kecamatan,
+            jp.id AS jenis_id,
+            jp.nama_pajak,
+            SUM(r.realisasi) AS realisasi
+        ");
+
+        $builder->join('target t', 't.id = r.target_id', 'inner');
+        $builder->join('jenis_pajak jp', 'jp.id = t.jenis_id', 'inner');
+        $builder->join('desa d', 'd.kode_desa = r.kode_desa', 'left');
+        $builder->join('kecamatan k', 'k.kode_kecamatan = d.kode_kecamatan', 'left');
+
+        $builder->where('r.tahun', $tahun);
+
+        if (!empty($kodeKecamatan)) {
+            $builder->where('d.kode_kecamatan', $kodeKecamatan);
+        }
+
+        if (!empty($kodeDesa)) {
+            $builder->where('r.kode_desa', $kodeDesa);
+        }
+
+        if (!empty($jenisId)) {
+            $builder->where('t.jenis_id', $jenisId);
+        }
+
+        $builder->groupBy([
+            'k.kode_kecamatan',
+            'k.nama_kecamatan',
+            'jp.id',
+            'jp.nama_pajak'
+        ]);
+
+        $builder->orderBy('k.nama_kecamatan', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Rekap realisasi per desa x jenis pajak (pivot)
+     */
+    public function getRealisasiPerDesa(
+        int $tahun,
+        ?string $kodeKecamatan = null,
+        ?string $kodeDesa = null,
+        ?int $jenisId = null
+    ) {
+        if (!$this->jenisPakaiKelurahan($jenisId)) {
+            return [];
+        }
+
+        $builder = $this->db
+            ->table('realisasi r');
+
+        $builder->select("
+            d.kode_desa,
+            d.nama_desa,
+            d.kode_kecamatan,
+            k.nama_kecamatan,
+            jp.id AS jenis_id,
+            jp.nama_pajak,
+            SUM(r.realisasi) AS realisasi
+        ");
+
+        $builder->join('target t', 't.id = r.target_id', 'inner');
+        $builder->join('jenis_pajak jp', 'jp.id = t.jenis_id', 'inner');
+        $builder->join('desa d', 'd.kode_desa = r.kode_desa', 'left');
+        $builder->join('kecamatan k', 'k.kode_kecamatan = d.kode_kecamatan', 'left');
+
+        $builder->where('r.tahun', $tahun);
+
+        if (!empty($kodeKecamatan)) {
+            $builder->where('d.kode_kecamatan', $kodeKecamatan);
+        }
+
+        if (!empty($kodeDesa)) {
+            $builder->where('r.kode_desa', $kodeDesa);
+        }
+
+        if (!empty($jenisId)) {
+            $builder->where('t.jenis_id', $jenisId);
+        }
+
+        $builder->groupBy([
+            'd.kode_desa',
+            'd.nama_desa',
+            'k.nama_kecamatan',
+            'jp.id',
+            'jp.nama_pajak'
+        ]);
+
+        $builder->orderBy('d.nama_desa', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
     #--- total setahun
     public function getTotal(
         int $tahun,
@@ -207,6 +353,15 @@ class DetilModel extends Model
             't.tahun',
             $tahun
         );
+
+        if ($this->pakaiLraKabupaten($jenisId, $kodeKecamatan, $kodeDesa)) {
+            $targetBuilder->join(
+                'jenis_pajak jp',
+                'jp.id = t.jenis_id',
+                'inner'
+            );
+            $this->excludeEsptpd($targetBuilder);
+        }
 
         if (!empty($jenisId)) {
             $targetBuilder->where(
@@ -237,6 +392,12 @@ class DetilModel extends Model
         );
 
         $realisasiBuilder->join(
+            'jenis_pajak jp',
+            'jp.id = t.jenis_id',
+            'inner'
+        );
+
+        $realisasiBuilder->join(
             'desa d',
             'd.kode_desa = r.kode_desa',
             'left'
@@ -246,6 +407,10 @@ class DetilModel extends Model
             'r.tahun',
             $tahun
         );
+
+        if ($this->pakaiLraKabupaten($jenisId, $kodeKecamatan, $kodeDesa)) {
+            $this->excludeEsptpd($realisasiBuilder);
+        }
 
         if (!empty($kodeKecamatan)) {
             $realisasiBuilder->where(

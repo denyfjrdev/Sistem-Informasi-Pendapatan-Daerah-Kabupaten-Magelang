@@ -111,4 +111,73 @@
     } 
   } 
 
+  if (! function_exists('set_parent_url_session')) {
+      function set_parent_url_session(): string
+      {
+          $fullUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
+              . '://' . $_SERVER['HTTP_HOST']
+              . $_SERVER['REQUEST_URI'];
+
+          parse_str(parse_url($fullUrl, PHP_URL_QUERY) ?? '', $params);
+
+          $parentUrl = $params['parent_url'] ?? '';
+
+          if (! empty($parentUrl)) {
+              $parentUrl = preg_replace('#/iframe/?$#', '', $parentUrl);
+              session()->set('parent_url', $parentUrl);
+          }
+
+          return $parentUrl;
+      }
+  }
+
+  if (! function_exists('layout_user_profile')) {
+      function layout_user_profile($data_user = null): array
+      {
+          if ($data_user === null || $data_user === '') {
+              $data_user = session()->get('data_user');
+          }
+          if (is_array($data_user)) {
+              $data_user = (object) $data_user;
+          }
+          if (! is_object($data_user)) {
+              $data_user = (object) [];
+          }
+
+          $namaTampil     = $data_user->nama_user_dekrip ?? '';
+          $emailTampil    = $data_user->email_dekrip ?? '';
+          $emailGovTampil = $data_user->email_gov_dekrip ?? '';
+
+          if ($namaTampil === '' || $emailTampil === '' || $emailGovTampil === '') {
+              try {
+                  $enkrip = new \App\Libraries\Enkripsi();
+                  $token  = env('TOKEN_ENKRIP_CI');
+                  if ($namaTampil === '' && ! empty($data_user->nama_user)) {
+                      $decoded = $enkrip->decode_custom($data_user->nama_user, $token);
+                      $namaTampil = (is_string($decoded) && $decoded !== '') ? $decoded : $data_user->nama_user;
+                  }
+                  if ($emailTampil === '' && ! empty($data_user->email)) {
+                      $decoded = $enkrip->decode_custom($data_user->email, $token);
+                      $emailTampil = (is_string($decoded) && $decoded !== '') ? $decoded : $data_user->email;
+                  }
+                  if ($emailGovTampil === '' && ! empty($data_user->email_gov)) {
+                      $decoded = $enkrip->decode_custom($data_user->email_gov, $token);
+                      $emailGovTampil = (is_string($decoded) && $decoded !== '') ? $decoded : $data_user->email_gov;
+                  }
+              } catch (\Throwable $e) {
+                  if ($namaTampil === '') {
+                      $namaTampil = $data_user->nama_user ?? '';
+                  }
+              }
+          }
+
+          return [
+              'data_user'      => $data_user,
+              'namaTampil'     => $namaTampil,
+              'emailTampil'    => $emailTampil,
+              'emailGovTampil' => $emailGovTampil,
+          ];
+      }
+  }
+
 ?>
